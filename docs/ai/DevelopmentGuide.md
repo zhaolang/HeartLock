@@ -35,6 +35,7 @@ AI 开发者接手项目时，请按以下顺序阅读文档：
 6. **Database.md** - 数据表结构
 7. **API.md** - API 契约
 8. **UISpec.md** - UI 设计
+9. **Deployment.md** - 部署与运维
 
 ---
 
@@ -42,7 +43,7 @@ AI 开发者接手项目时，请按以下顺序阅读文档：
 
 ### 4.1 代码规范
 
-- 后端优先使用 TypeScript / Go
+- 后端使用 Go 1.22+
 - HarmonyOS 客户端使用 ArkTS（严格模式）
 - 所有枚举值使用业务规则中的英文命名（WAITING / MATCHED 等）
 - Comment 注释使用中文
@@ -101,7 +102,95 @@ scope: server|harmony|docs
 
 ---
 
-## 6. References（引用）
+## 6. Local Development Environment Setup（本地开发环境搭建）
+
+### 6.1 前置依赖
+
+| 工具 | 版本 | 安装方式 |
+|---|---|---|
+| Go | 1.22+ | `brew install go` |
+| PostgreSQL | 16+ | `brew install postgresql@16` |
+| golang-migrate | 4.x | `brew install golang-migrate` |
+| Docker | 24+ | Docker Desktop for Mac |
+| Docker Compose | 2.x | 随 Docker Desktop 安装 |
+
+### 6.2 数据库初始化
+
+```bash
+# 启动 PostgreSQL
+brew services start postgresql@16
+
+# 创建数据库和用户
+psql postgres -c "CREATE USER heartlock WITH PASSWORD 'heartlock_dev';"
+psql postgres -c "CREATE DATABASE heartlock OWNER heartlock;"
+
+# 执行迁移
+migrate -path server/migrations   -database "postgres://heartlock:heartlock_dev@localhost:5432/heartlock?sslmode=disable" up
+```
+
+### 6.3 环境变量配置
+
+```bash
+# 复制模板文件
+cp .env.template .env.development
+
+# 编辑 .env.development，填入开发环境配置
+# 对于本地开发，以下配置可直接使用默认值：
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=heartlock
+# DB_PASSWORD=heartlock_dev
+# DB_NAME=heartlock
+```
+
+### 6.4 常用 Makefile 目标
+
+推荐在项目根目录创建 Makefile：
+
+```makefile
+.PHONY: run test build migrate-up migrate-down db-create db-drop docker-up docker-down
+
+# 开发
+run:
+	go run ./cmd/server
+
+test:
+	go test -v -race -count=1 ./...
+
+build:
+	go build -o bin/heartlock-server ./cmd/server
+
+# 数据库
+migrate-up:
+	migrate -path server/migrations -database "postgres://heartlock:${DB_PASSWORD}@localhost:5432/heartlock?sslmode=disable" up
+
+migrate-down:
+	migrate -path server/migrations -database "postgres://heartlock:${DB_PASSWORD}@localhost:5432/heartlock?sslmode=disable" down 1
+
+# Docker
+docker-up:
+	docker-compose --env-file .env.development up -d --build
+
+docker-down:
+	docker-compose down
+
+# 代码检查
+lint:
+	golangci-lint run ./...
+```
+
+### 6.5 本地开发数据流
+
+```mermaid
+flowchart LR
+    DEV[本地开发] -->|go run| APP[Go Server :8080]
+    APP -->|localhost:5432| DB[(PostgreSQL)]
+    DEV -->|SQL 迁移| MIG[migrate CLI]
+    MIG --> DB
+```
+
+
+## 7. References（引用）
 
 | 引用 | 说明 |
 |---|---|

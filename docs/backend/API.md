@@ -3,11 +3,11 @@
 | 字段 | 内容 |
 |---|---|
 | 文档名称 | HeartLock（心锁）API 接口规范 |
-| 文档编号 | API-V1.0 |
+| 文档编号 | API-V1.1 |
 | 状态 | 草稿 |
 | 作者 | Codex |
 | 创建日期 | 2026-07-07 |
-| 最后更新 | 2026-07-07 |
+| 最后更新 | 2026-07-07（第二版） |
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 2. Scope（范围）
 
-涵盖认证模块、心锁管理模块、匹配模块、用户管理模块的所有 RESTful API 端点。
+涵盖认证模块、心锁管理模块、匹配模块、用户管理模块的所有 RESTful API 端点，以及健康检查、CORS、限流、分页等通用约定。
 
 ---
 
@@ -88,13 +88,190 @@ X-Request-ID: <uuid>  // 用于链路追踪
 | 40012 | 不能向自己创建心锁 |
 | 40013 | 心锁状态不允许此操作 |
 | 40020 | 匹配检测异常 |
+| 40030 | 邀请卡片已存在（每个心锁仅可生成一张） |
 | 40100 | 用户已注销 |
+| 50001 | 服务器内部错误 |
+| 50002 | 数据库操作异常 |
+| 50003 | 加密/解密失败 |
+
+
+### 3.6 CORS 配置
+
+#### 3.6.1 允许的来源
+
+```
+Access-Control-Allow-Origin: https://heartlock.app
+Access-Control-Allow-Origin: https://api.heartlock.app
+```
+
+- 生产环境仅允许上述两个来源
+- 开发环境允许 `*`，但仅限本地开发
+- 禁止在生产环境使用通配符来源
+
+#### 3.6.2 允许的方法
+
+```
+Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS
+```
+
+#### 3.6.3 允许的请求头
+
+```
+Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-ID
+```
+
+#### 3.6.4 预检请求（OPTIONS）
+
+- 所有 CORS 预检请求统一返回 204 No Content
+- 预检缓存时间：`Access-Control-Max-Age: 86400`（24 小时）
+
+### 3.7 请求验证中间件规范
+
+所有 API 请求必须经过统一的请求验证中间件。验证规则如下：
+
+#### 3.7.1 输入验证规则
+
+| 字段类型 | 验证规则 | 错误码 |
+|---|---|---|
+| 手机号 | 必填，11 位数字，仅以 1 开头 | 40001 |
+| 心锁内容 | 1-500 字符，禁止纯空格 | 40001 |
+| 心锁状态 | 仅允许 WAITING / MATCHED / REVOKED / DESTROYED | 40001 |
+| 页码 | >= 1 的整数 | 40001 |
+| 每页数量 | 1-50 的整数 | 40001 |
+
+#### 3.7.2 安全过滤
+
+- 所有字符串输入进行 HTML 转义（防 XSS）
+- 禁止 SQL 关键字注入（防 SQL 注入，但最终防护依赖参数化查询）
+- 输入长度超过限制时直接拒绝，不截断
+
+#### 3.7.3 统一错误响应
+
+```json
+{
+  "code": 40001,
+  "message": "target_phone: 手机号格式不正确，需为 11 位数字",
+  "data": {
+    "field": "target_phone",
+    "reason": "invalid_format"
+  },
+  "request_id": "uuid"
+}
+```
+
+### 3.8 分页规范
+
+#### 3.8.1 标准分页（默认方式）
+
+使用 page / page_size 参数，适用于大多数列表查询。
+
+| 参数 | 类型 | 默认值 | 最大值 | 说明 |
+|---|---|---|---|---|
+| page | int | 1 | -- | 页码，从 1 开始 |
+| page_size | int | 20 | 50 | 每页记录数 |
+
+**响应格式：**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "items": [ ... ],
+    "total": 42,
+    "page": 1,
+    "page_size": 20,
+    "total_pages": 3
+  }
+}
+```
+
+#### 3.8.2 游标分页（可选，用于大数据集）
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| cursor | string | 上一页最后一条记录的 ID 或排序字段值 |
+| limit | int | 每页数量，默认 20，最大 50 |
+
+**响应格式：**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "items": [ ... ],
+    "next_cursor": "uuid_of_last_item",
+    "has_more": true
+  }
+}
+```
+
+**建议：** 心锁列表默认使用标准分页（用户数据量小），操作日志查询使用游标分页（数据量大）。
+
+### 3.9 限流策略
+
+| 层级 | 粒度 | 限制 | 说明 |
+|---|---|---|---|
+| 全局 IP | 每 IP | 60 次/分钟 | 防止单个 IP 的恶意请求 |
+| 创建心锁 | 每用户 | 10 次/小时 | 防止批量创建心锁（RULE-011 已限制 3 个，此限流是额外防护） |
+| 登录/注册 | 每 IP | 20 次/小时 | 防止暴力登录尝试 |
+| 手机号验证 | 每 IP | 5 次/分钟 | 防止手机号枚举攻击 |
+
+**限流响应：**
+
+```json
+{
+  "code": 40001,
+  "message": "请求过于频繁，请稍后重试",
+  "data": {
+    "retry_after": 30
+  },
+  "request_id": "uuid"
+}
+```
+
+**HTTP 响应头：**
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1625678900
+```
+
 
 ---
 
 ## 4. API Endpoints（接口定义）
 
 ### 4.1 认证模块
+
+
+#### GET /health
+
+健康检查端点。用于 Docker 容器存活探针（liveness）和就绪探针（readiness）。
+
+**响应：**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "status": "healthy",
+    "version": "1.0.0",
+    "db_connected": true,
+    "uptime_seconds": 3600,
+    "timestamp": "2026-07-07T10:00:00Z"
+  }
+}
+```
+
+**校验规则：**
+- `status` 为 "healthy" 时表示服务正常
+- `db_connected` 为 true 时表示数据库连接正常，否则触发告警
+- 服务启动后 **前 5 秒** 允许 `db_connected = false`（启动阶段）
+- Docker Compose 配置中：liveness 探针间隔 30s，initialDelaySeconds=10
+
+---
+
 
 #### POST /auth/register
 
@@ -444,6 +621,9 @@ X-Request-ID: <uuid>  // 用于链路追踪
 | AC-API-005 | DELETE destroy 仅在 REVOKED 状态可用 | DELETE /heart-locks/:id |
 | AC-API-006 | GET /heart-locks 始终不返回明文手机号 | GET /heart-locks |
 | AC-API-007 | DELETE /auth/account 删除所有用户数据 | DELETE /auth/account |
+| AC-API-008 | GET /health 返回 healthy 状态且 db_connected = true | GET /health |
+| AC-API-009 | 请求参数校验失败返回 40001 及 field/reason 信息 | 全部端点 |
+| AC-API-010 | 创建心锁频率超过 10 次/小时返回限流响应 | POST /heart-locks |
 
 ---
 
@@ -454,3 +634,4 @@ X-Request-ID: <uuid>  // 用于链路追踪
 | [BusinessRules.md](../product/BusinessRules.md) | 业务规则 |
 | [Database.md](./Database.md) | 数据库设计 |
 | [PRD.md](../product/PRD.md) | 产品需求文档 |
+| [Deployment.md](./Deployment.md) | 部署与运维规范 |
