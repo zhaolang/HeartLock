@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+*.swp
+*.swo
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Go
+server/vendor/
+
+# HarmonyOS
+harmony/.idea/
+harmony/build/
+harmony/.preview/
+harmony/local.properties
+harmony/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.local
