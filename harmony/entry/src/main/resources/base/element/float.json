@@ -1,0 +1,21 @@
+{
+  "float": [
+    { "name": "corner_radius_card", "value": "12.0vp" },
+    { "name": "corner_radius_button", "value": "8.0vp" },
+    { "name": "spacing_xs", "value": "4.0vp" },
+    { "name": "spacing_sm", "value": "8.0vp" },
+    { "name": "spacing_md", "value": "12.0vp" },
+    { "name": "spacing_lg", "value": "16.0vp" },
+    { "name": "spacing_xl", "value": "24.0vp" },
+    { "name": "font_size_title", "value": "24.0fp" },
+    { "name": "font_size_subtitle", "value": "18.0fp" },
+    { "name": "font_size_body", "value": "16.0fp" },
+    { "name": "font_size_caption", "value": "13.0fp" },
+    { "name": "font_size_small", "value": "11.0fp" },
+    { "name": "icon_size_sm", "value": "20.0vp" },
+    { "name": "icon_size_md", "value": "24.0vp" },
+    { "name": "icon_size_lg", "value": "32.0vp" },
+    { "name": "icon_size_xl", "value": "48.0vp" },
+    { "name": "button_height", "value": "48.0vp" }
+  ]
+}

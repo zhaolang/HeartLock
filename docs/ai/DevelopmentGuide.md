@@ -190,6 +190,129 @@ flowchart LR
 ```
 
 
+
+### 6.6 HarmonyOS 开发环境配置
+
+| 工具 | 版本 | 说明 |
+|---|---|---|
+| DevEco Studio | 5.0+ | 官方 IDE，基于 IntelliJ |
+| HarmonyOS SDK | API 12+ | 通过 DevEco Studio SDK Manager 安装 |
+| ohpm | 随 DevEco Studio 安装 | 鸿蒙包管理器 |
+| 本地模拟器 | API 12+ | DevEco Studio 内置 Local Emulator |
+| 华为真机 | HarmonyOS NEXT 5.0+ | 推荐 Mate 60 / Pura 70 系列 |
+
+#### 6.6.1 DevEco Studio 安装步骤
+
+```
+1. 下载 DevEco Studio: https://developer.huawei.com/consumer/cn/download/
+2. 安装后启动 → SDK Manager → 安装 HarmonyOS SDK API 12+
+3. 打开项目: File → Open → 选择 heartlock/harmony/
+4. 等待 ohpm install 自动执行依赖安装
+5. 如需手动安装: cd harmony && ohpm install
+```
+
+#### 6.6.2 使用本地模拟器
+
+```
+1. DevEco Studio → Tools → Device Manager
+2. 选择 Local Emulator → 创建 API 12+ 模拟器
+3. 启动模拟器后，点击 Run 运行项目
+4. 模拟器具备完整 HarmonyOS NEXT 环境
+```
+
+#### 6.6.3 项目配置
+
+项目已配置好 IBest-UI 组件库依赖和所有页面路由：
+
+| 配置文件 | 路径 | 说明 |
+|---|---|---|
+| 应用配置 | harmony/AppScope/app.json5 | bundleName、版本号、图标 |
+| 模块配置 | harmony/entry/src/main/module.json5 | 权限声明、Ability 配置 |
+| 页面路由 | harmony/entry/src/main/resources/base/profile/main_pages.json | 8 个页面路由注册 |
+| 构建配置 | harmony/build-profile.json5 | API 版本、编译选项 |
+
+#### 6.6.4 页面路由表
+
+| 页面文件 | 路由路径 | 说明 |
+|---|---|---|
+| SplashPage.ets | pages/SplashPage | 启动页（品牌 Slogan 2s 后跳转） |
+| LoginPage.ets | pages/LoginPage | 登录页（华为账号登录引导） |
+| HomePage.ets | pages/HomePage | 首页（心锁列表，空状态引导） |
+| CreateLockPage.ets | pages/CreateLockPage | 创建心锁表单 |
+| LockDetailPage.ets | pages/LockDetailPage | 心锁详情（WAITING/MATCHED 状态） |
+| UnlockCeremonyPage.ets | pages/UnlockCeremonyPage | 匹配解锁仪式动画 |
+| InvitationCardPage.ets | pages/InvitationCardPage | 邀请卡片生成与预览 |
+| ProfilePage.ets | pages/ProfilePage | 个人中心与账户注销 |
+
+### 6.7 Mock API vs 真实 API 切换策略
+
+V1 阶段 HarmonyOS 客户端使用 Mock 数据进行开发，无需后端服务也可运行。
+
+**Mock 机制：**
+
+```
+AuthService.ts:
+  try {
+    return await httpClient.post(...)   ← 先尝试真实 API
+  } catch {
+    return this.mockLogin();            ← 失败后降级到 Mock
+  }
+
+LockService.ts:
+  try {
+    return await httpClient.get(...)
+  } catch {
+    return this.getMockLocks(status);   ← Mock 数据
+  }
+```
+
+**切换方式：**
+
+| 场景 | 操作 | 说明 |
+|---|---|---|
+| 纯 Mock 模式 | 无需任何配置 | 后端未部署时自动使用 Mock |
+| 开发调试 | 确保后端服务运行在 `httpClient.baseUrl` 配置的地址 | 客户端自动切换到真实 API |
+| 混合模式 | 修改 HttpClient.ts 中的 baseUrl | 指向本地开发的 Go Server |
+| 生产模式 | baseUrl = `https://api.heartlock.app/v1` | JWT 鉴权 + 生产加密 |
+
+**本地开发时修改 HttpClient：**
+
+```typescript
+// harmony/entry/src/main/ets/service/HttpClient.ts
+class HttpClient {
+  // 本地开发时改为 localhost
+  private baseUrl: string = 'http://10.0.2.2:8080/v1';
+  // 10.0.2.2 = Android 模拟器访问宿主机 localhost 的地址
+  // HarmonyOS Local Emulator 同理
+}
+```
+
+### 6.8 华为开发者账号配置
+
+开发 HeartLock 需要注册华为开发者账号并开通相关服务：
+
+| 服务 | 开通方式 | 用途 |
+|---|---|---|
+| 华为账号服务（Account Kit） | AppGallery Connect → 认证服务 | 快捷登录 |
+| 推送服务（Push Kit） | AppGallery Connect → 推送服务 | 匹配成功通知 |
+| 华为云 | 控制台 → 弹性云服务器 | 后端部署 |
+
+**开通步骤：**
+
+```
+1. 注册华为开发者账号: https://developer.huawei.com/consumer/cn/
+2. 创建 AppGallery Connect 应用:
+   - 登录 AppGallery Connect
+   - 新建应用 → 包名: com.heartlock.app
+   - 开通"认证服务"（Account Kit）
+   - 开通"推送服务"（Push Kit）
+3. 配置 SHA256 证书指纹:
+   - 在 DevEco Studio 中构建 → 生成签名证书
+   - 在 AppGallery Connect 配置 SHA256 指纹
+4. 获取推送密钥:
+   - 推送服务 → 配置 → 应用 ID 和 Secret
+   - 填入服务端 .env.production 的 HUAWEI_PUSH_APP_ID 和 SECRET
+```
 ## 7. References（引用）
 
 | 引用 | 说明 |

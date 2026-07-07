@@ -514,6 +514,70 @@ docker-compose logs --no-color app > app_logs_$(date +%Y%m%d).json
 
 ---
 
+
+### 9.5 V1 阶段实用监控搭建（无需 Prometheus）
+
+V1 阶段用户量较小（预估 DAU < 10,000），无需引入 Prometheus + Grafana 重型监控栈。以下为轻量级但有效的监控方案：
+
+**方案一：基于健康检查的外部监控（推荐 V1 首选）**
+
+| 工具 | 用途 | 配置方式 |
+|---|---|---|
+| uptimerobot.com（免费版） | 每 5 分钟检查 /health 端点 | 创建 HTTP(s) 监控，监控 https://api.heartlock.app/health |
+| cron + curl | 内部端到端可用性检查 | 每 10 分钟执行 curl + 失败时写入日志 |
+
+```bash
+#!/bin/bash
+# /opt/heartlock/scripts/health_check.sh
+# 添加 crontab: */10 * * * * /opt/heartlock/scripts/health_check.sh
+
+URL="https://api.heartlock.app/health"
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+
+if [ "$RESPONSE" != "200" ]; then
+  echo "[$(date)] ERROR: Health check failed with status $RESPONSE" >> /var/log/heartlock/health.log
+  # 可选：发送告警（mail / 飞书 / Slack Webhook）
+fi
+```
+
+**方案二：应用内健康指标（内置在 /health 响应中）**
+
+| 指标 | 来源 | 告警阈值 |
+|---|---|---|
+| db_connected | /health 响应 | false 持续 30 秒 → 告警 |
+| uptime_seconds | /health 响应 | < 60（刚重启）→ 关注 |
+| 最近 100 次请求错误率 | 日志分析 | > 5% → 告警 |
+
+**方案三：日志告警（cron + grep）**
+
+```bash
+# 每 15 分钟检查最近 5 分钟的 ERROR 日志数量
+ERROR_COUNT=$(docker-compose logs --since=5m app | grep -c level:error)
+if [ "$ERROR_COUNT" -gt 10 ]; then
+  echo "[$(date)] WARN: $ERROR_COUNT errors in last 5 minutes" >> /var/log/heartlock/alerts.log
+fi
+```
+
+### 9.6 日志聚合方案
+
+V1 阶段，日志管理可维持在 Docker Compose 级别，不需引入 ELK/Loki：
+
+```bash
+# 日志轮转（Docker 默认配置）
+docker-compose logs --tail=1000 app > /var/log/heartlock/app_$(date +%Y%m%d).log
+
+# 保留最近 30 天日志
+find /var/log/heartlock -name "*.log" -mtime +30 -delete
+```
+
+**V2 升级方向：**
+
+| 工具 | 用途 | 预计引入时间 |
+|---|---|---|
+| Loki + Promtail | 日志集中存储和查询 | DAU > 10,000 |
+| Grafana | 日志可视化面板 | DAU > 10,000 |
+| Sentry | 错误追踪 | V2 期 |
+
 ## 10. Deployment Checklist（部署清单）
 
 ### 10.1 首次部署
@@ -589,6 +653,28 @@ docker-compose exec app migrate -path /app/migrations \
 | 心锁创建 | 100-500 次/天 | 低频操作 |
 | API 请求 | 5-20 QPS | 峰值时段 |
 | 数据库存储 | ~10 GB（含备份） | 一年数据量 |
+### 11.3 成本估算（月度）
+
+以下为 V1 阶段生产环境月度运行成本估算（人民币）：
+
+| 项目 | 规格 | 月费（估算） | 说明 |
+|---|---|---|---|
+| 云服务器 | 2 核 4GB 40GB SSD（如 华为云/阿里云 轻量服务器） | ¥68 - ¥128 | 腾讯云轻量 2C4G 约 ¥68/月 |
+| 域名 | heartlock.app + api.heartlock.app | ¥0（首年） / ~¥60/年 | .app 域名年费 |
+| SSL 证书 | Let's Encrypt | ¥0 | 免费自动续期 |
+| 华为推送 | 华为 Push Kit | ¥0 | 免费额度内 |
+| 华为账号 | 华为 Account Kit | ¥0 | 免费 |
+| 监控 (uptimerobot) | 免费版 50 个监控器 | ¥0 | 足够 V1 使用 |
+| CDN（可选） | 静态资源加速 | ¥0 - ¥30/月 | 可按需启用 |
+| **合计** | | **¥68 - ¥218/月** | |
+
+**年度总成本：约 ¥816 - ¥2,616/年**
+
+**上线初期成本优化建议：**
+- 使用 腾讯云轻量应用服务器（2C4G ¥68/月）作为起步
+- 应用服务和数据库部署在同一台服务器（Docker Compose）
+- 待 DAU 超过 5,000 后再考虑数据库独立部署
+- CDN 仅在静态资源（邀请卡片图片）量增大后启用
 
 ---
 
@@ -665,3 +751,102 @@ sudo certbot renew --dry-run
 | [Database.md](./Database.md) | 数据库设计（迁移策略） |
 | [Security.md](./Security.md) | 安全架构（TLS、审计日志） |
 | [BusinessRules.md](../product/BusinessRules.md) | 业务规则 |
+
+## 15. 灾备方案（Disaster Recovery）
+
+### 15.1 故障等级定义
+
+| 等级 | 定义 | 恢复目标 | 示例 |
+|---|---|---|---|
+| P0 | 服务完全不可用 | RTO < 30min, RPO < 5min | 服务器宕机、数据库损坏 |
+| P1 | 核心功能不可用 | RTO < 2h, RPO < 15min | 创建心锁失败、匹配检测异常 |
+| P2 | 非核心功能异常 | 下个迭代修复 | 邀请卡片生成失败、推送延迟 |
+
+### 15.2 服务器宕机恢复流程
+
+```bash
+# P0 故障：服务器宕机恢复步骤
+
+# 1. 确认故障
+ssh -i ~/.ssh/heartlock user@<服务器IP>
+docker-compose ps                    # 检查容器状态
+docker-compose logs --tail=50 app    # 检查应用日志
+curl http://localhost:8080/health    # 检查健康状态
+
+# 2a. 如果只是容器崩溃
+docker-compose up -d --no-deps app   # 重新创建容器
+
+# 2b. 如果服务器重启后 Docker 未自启
+sudo systemctl start docker
+docker-compose -f /opt/heartlock/docker-compose.yml up -d
+
+# 2c. 如果服务器不可恢复（硬件故障）
+# 新建一台服务器 → 安装 Docker → 拉取最新镜像
+# 从最近的数据库备份恢复 → 更新 DNS 记录指向新服务器 IP
+```
+
+### 15.3 数据库损坏恢复流程
+
+```bash
+# P0 故障：数据库损坏 / 数据丢失
+
+# 1. 停止应用（防止写入污染）
+docker-compose stop app
+
+# 2. 检查数据库状态
+docker-compose logs --tail=30 db
+docker exec heartlock-db pg_isready -U heartlock
+
+# 3. 从最近备份恢复
+LATEST_BACKUP=$(ls -t /opt/heartlock/backups/*.sql.gz | head -1)
+echo "恢复备份: $LATEST_BACKUP"
+gunzip -c "$LATEST_BACKUP" | docker exec -i heartlock-db psql -U heartlock heartlock
+
+# 4. 启动应用
+docker-compose start app
+
+# 5. 验证数据完整性
+curl http://localhost:8080/health
+docker-compose logs --tail=20 app
+```
+
+### 15.4 密钥泄露响应流程
+
+| 步骤 | 操作 | 负责人 |
+|---|---|---|
+| 1 | 立即下线受影响的 API | 值班开发者 |
+| 2 | 紧急轮换主密钥（详见 Security.md 4.3.1） | 后端开发者 |
+| 3 | 检查审计日志，确认泄露范围 | 后端开发者 |
+| 4 | 通知所有活跃用户重新登录（JWT 失效） | 后端开发者 |
+| 5 | 发布安全事件报告 | 项目负责人 |
+
+### 15.5 备份恢复验证
+
+每月进行一次备份恢复演练：
+
+```bash
+# 1. 在临时容器中恢复最近备份
+docker run --rm -v /opt/heartlock/backups:/backup postgres:16-alpine \
+  /bin/bash -c "gunzip -c /backup/heartlock_latest.sql.gz | psql -h test-host -U heartlock heartlock"
+
+# 2. 验证恢复后的数据
+# - 确认用户表不为空
+# - 确认心锁表数据量在合理范围
+# - 确认匹配检测 SQL 能正确执行
+
+# 3. 记录验证结果
+echo "[$(date)] 备份恢复验证完成" >> /var/log/heartlock/backup_verify.log
+```
+
+### 15.6 日常运维检查清单
+
+| 频率 | 检查项目 | 操作 |
+|---|---|---|
+| 每日 | 健康检查日志 | 查看 /var/log/heartlock/health.log |
+| 每日 | 磁盘使用率 | `df -h /` 确认 < 80% |
+| 每日 | 容器运行状态 | `docker-compose ps` 确认 all up |
+| 每周 | 备份完整性 | `ls -l /opt/heartlock/backups/` 确认最近备份 |
+| 每周 | 日志清理 | `find /var/log/heartlock -name "*.log" -mtime +30 -delete` |
+| 每月 | 备份恢复演练 | 在临时环境执行一次完整恢复 |
+| 每月 | SSL 证书检查 | `certbot renew --dry-run` |
+| 每月 | 安全审计 | 检查审计日志中的异常请求模式 |

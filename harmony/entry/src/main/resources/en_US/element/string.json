@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "My App" },
+    { "name": "entry_desc", "value": "Entry Module" },
+    { "name": "EntryAbility_desc", "value": "Main Ability" }
+  ]
+}

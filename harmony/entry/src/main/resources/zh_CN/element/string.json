@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "我的应用" },
+    { "name": "entry_desc", "value": "应用主模块" },
+    { "name": "EntryAbility_desc", "value": "主Ability" }
+  ]
+}

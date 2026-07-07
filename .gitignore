@@ -25,3 +25,5 @@ harmony/node_modules/
 # Environment
 .env
 .env.local
+oh_modules/
+.hvigor/

@@ -1,0 +1,12 @@
+{
+  "src": [
+    "pages/SplashPage",
+    "pages/LoginPage",
+    "pages/HomePage",
+    "pages/CreateLockPage",
+    "pages/LockDetailPage",
+    "pages/UnlockCeremonyPage",
+    "pages/InvitationCardPage",
+    "pages/ProfilePage"
+  ]
+}
