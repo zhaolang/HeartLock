@@ -32,3 +32,4 @@ oh_modules/
 server/bin/
 .config-backup/
 entry/build/
+*.bak
