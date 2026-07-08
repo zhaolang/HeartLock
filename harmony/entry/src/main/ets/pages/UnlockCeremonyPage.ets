@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import { vibrator } from '@kit.SensorServiceKit';
 
 @Entry
@@ -20,6 +21,7 @@ struct UnlockCeremonyPage {
   @State theirWords: string = '';
 
   aboutToAppear(): void {
+    IBestInit();
     const params = Navigation.getParams();
     this.theirWords = (params?.['theirWords'] as string) ?? '打开心锁的那一刻，才有答案。';
     this.startCeremony();

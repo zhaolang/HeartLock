@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import { LockItem, LockStatus } from '../model/Lock';
 import { LockCard } from '../component/LockCard';
 import { LogoHeader } from '../component/LogoHeader';
@@ -16,6 +17,7 @@ struct HomePage {
   @State private animGeneration: number = 0;
 
   aboutToAppear(): void {
+    IBestInit();
     this.loadLocks();
   }
 

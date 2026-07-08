@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import authService from '../service/AuthService';
 import { PageHeader } from '../ui-kit/PageHeader';
 
@@ -20,6 +21,7 @@ struct ProfilePage {
   @State statsAnimOffset: number = 20;
 
   aboutToAppear(): void {
+    IBestInit();
     animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
       this.pageOpacity = 1;
     });

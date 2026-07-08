@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import authService from '../service/AuthService';
 
 @Entry
@@ -13,6 +14,7 @@ struct LoginPage {
   @State buttonOpacity: number = 0;
 
   aboutToAppear(): void {
+    IBestInit();
     // 内容淡入 + 上移 (600ms)
     animateTo({ duration: 600, curve: Curve.EaseOut }, () => {
       this.contentOpacity = 1;

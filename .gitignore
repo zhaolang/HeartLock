@@ -33,3 +33,6 @@ server/bin/
 .config-backup/
 entry/build/
 *.bak
+
+# HarmonyOS build output
+harmony/entry/build/

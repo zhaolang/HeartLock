@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 
 @Entry
 @Component
@@ -12,6 +13,7 @@ struct SplashPage {
   @State brandOpacity: number = 0;
 
   aboutToAppear(): void {
+    IBestInit();
     // 背景淡入 (300ms)
     animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
       this.bgOpacity = 1;

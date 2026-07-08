@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import { PageHeader } from '../ui-kit/PageHeader';
 import { pasteboard } from '@kit.BasicServicesKit';
 import { vibrator } from '@kit.SensorServiceKit';
@@ -11,6 +12,7 @@ struct InvitationCardPage {
   @State pageOpacity: number = 0;
 
   aboutToAppear(): void {
+    IBestInit();
     const params = Navigation.getParams();
     this.lockId = (params?.['lockId'] as string) ?? '';
 

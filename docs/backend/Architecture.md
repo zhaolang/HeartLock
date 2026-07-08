@@ -188,8 +188,7 @@ func main() {
 2. Logging        → 记录请求路径、方法、耗时、状态码
 3. Recovery       → panic 恢复，返回 500 而非崩溃
 4. CORS           → 跨域设置
-5. RateLimit      → 限流（全局 IP 限流）
-6. Auth (可选)     → JWT 验证（部分路由跳过）
+5. Auth (可选)     → JWT 验证（部分路由跳过）
 ```
 
 ### 6.2 中间件实现要点
@@ -229,26 +228,13 @@ func Logging(next http.Handler) http.Handler {
 }
 ```
 
-**RateLimit（令牌桶算法）：**
+**RateLimit（限流中间件）**
 
-```go
-// 使用 golang.org/x/time/rate 实现令牌桶限流
-var limiter = rate.NewLimiter(rate.Every(time.Minute/60), 60) // 60 req/min
+限流中间件（`RateLimit`, `CreateLockRateLimit`, `LoginRateLimit`）实现在 `internal/middleware/ratelimit.go`，其中：
+- `LoginRateLimit` 已在认证路由（`POST /auth/register` 和 `POST /auth/login`）上启用，按 IP 限流 20 次/小时
+- `RateLimit`（全局 IP 限流 60 次/分钟）和 `CreateLockRateLimit`（每用户 10 次/小时）已定义但尚未在路由中启用，列为 V1.1 增强项
 
-func RateLimit(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        if !limiter.Allow() {
-            writeJSON(w, http.StatusTooManyRequests, ErrorResponse{
-                Code:    40001,
-                Message: "请求过于频繁，请稍后重试",
-                Data:    map[string]any{"retry_after": 30},
-            })
-            return
-        }
-        next.ServeHTTP(w, r)
-    })
-}
-```
+> 当前路由限流配置见 [API.md 3.9 限流策略](./API.md#39-限流策略)
 
 ---
 
@@ -518,11 +504,11 @@ func (s *LockService) CreateLock(ctx context.Context, userID uuid.UUID, req dto.
 ```sql
 -- 查找是否存在一条 WAITING 心锁，满足：
 -- 创建者 = 当前用户的手机号哈希对应的用户
--- 且 目标手机号指纹 = 当前用户的手机号指纹
+-- 且 创建者的 phone_hash_sha256 = 当前用户心锁的目标手机号指纹（SHA-256 确定性哈希）
 SELECT hl.* FROM heart_locks hl
 JOIN users u ON u.id = hl.from_user_id
-WHERE hl.to_phone_hash = (SELECT phone_hash FROM users WHERE id = $1)   -- 目标 = 当前用户
-  AND u.phone_hash = $2                                                  -- 创建者 = 当前用户的目标
+WHERE hl.to_phone_hash_sha256 = $1   -- 目标 = 当前用户（当前用户的 phone_hash_sha256）
+  AND u.phone_hash_sha256 = $2                                      -- 创建者 = 当前用户的目标（目标手机号的 SHA-256）
   AND hl.status = 'WAITING'
 LIMIT 1
 ```
@@ -666,10 +652,7 @@ func setupRouter(
     r.Use(middleware.CORS)
 
     // 公开路由（无 JWT 鉴权）
-    r.Group(func(r chi.Router) {
-        r.Use(middleware.RateLimit)            // 全局限流
-        r.Get("/health", healthHandler.Health)
-    })
+    r.Get("/health", healthHandler.Health)
 
     // 认证路由（部分无需鉴权）
     r.Route("/v1", func(r chi.Router) {
@@ -708,7 +691,7 @@ func setupRouter(
 | 编号 | 验收标准 | 关联章节 |
 |---|---|---|
 | AC-ARCH-001 | `go build ./cmd/server` 编译通过无错误 | 4 |
-| AC-ARCH-002 | 中间件链按 RequestID → Logging → Recovery → CORS → RateLimit → Auth 顺序注册 | 6 |
+| AC-ARCH-002 | 中间件链按 RequestID → Logging → Recovery → CORS → Auth → LoginRateLimit 顺序注册 | 6 |
 | AC-ARCH-003 | 所有业务错误通过 AppError 类型返回，不泄漏内部错误信息 | 7 |
 | AC-ARCH-004 | 创建心锁时同步执行匹配检测，匹配成功同时更新两条记录 | 10 |
 | AC-ARCH-005 | 服务收到 SIGINT/SIGTERM 后 30 秒内完成优雅关闭 | 13 |

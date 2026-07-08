@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import { LockItem, LockStatus } from '../model/Lock';
 import lockService from '../service/LockService';
 import { PageHeader } from '../ui-kit/PageHeader';
@@ -11,6 +12,7 @@ struct LockDetailPage {
   @State pageOpacity: number = 0;
 
   aboutToAppear(): void {
+    IBestInit();
     const params = Navigation.getParams();
     const lockId = params?.['lockId'] as string;
     if (lockId) {

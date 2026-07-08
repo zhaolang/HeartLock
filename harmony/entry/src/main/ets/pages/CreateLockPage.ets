@@ -1,4 +1,5 @@
 import { Navigation } from '../ui-kit/Navigation';
+import { IBestInit } from '@ibestservices/ibest-ui';
 import authService from '../service/AuthService';
 import lockService from '../service/LockService';
 import { vibrator } from '@kit.SensorServiceKit';
@@ -17,6 +18,7 @@ struct CreateLockPage {
   @State contentOffset: number = 20;
 
   aboutToAppear(): void {
+    IBestInit();
     animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
       this.contentOpacity = 1;
       this.contentOffset = 0;

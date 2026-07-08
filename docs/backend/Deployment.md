@@ -211,7 +211,6 @@ DB_NAME=heartlock
 DB_SSLMODE=disable
 DB_MAX_OPEN_CONNS=25
 DB_MAX_IDLE_CONNS=10
-DB_CONN_MAX_LIFETIME=30m
 
 # 主密钥（用于加密数据密钥）
 MASTER_KEY=<生成一个 32 字节的随机 HEX 字符串>
@@ -589,6 +588,10 @@ find /var/log/heartlock -name "*.log" -mtime +30 -delete
 - [ ] 申请 Let's Encrypt SSL 证书并配置自动续期
 - [ ] 配置 GitHub Secrets（DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY）
 - [ ] 在服务器创建 /opt/heartlock 目录并初始化
+- [ ] 创建备份目录并设置权限: mkdir -p /opt/heartlock/backups && chmod 700 /opt/heartlock/backups
+- [ ] 复制 docker-compose.yml 和 .env.production 到 /opt/heartlock
+- [ ] 首次启动: docker-compose -f /opt/heartlock/docker-compose.yml --env-file /opt/heartlock/.env.production up -d
+- [ ] 执行数据库迁移: docker-compose exec app migrate -path /app/migrations -database "postgres://heartlock:${DB_PASSWORD}@db:5432/heartlock?sslmode=disable" up
 - [ ] 首次部署时手动执行数据库迁移
 - [ ] 验证 /health 端点返回正确状态
 - [ ] 配置 crontab 每日数据库备份
@@ -743,7 +746,26 @@ sudo certbot renew --dry-run
 
 ---
 
-## 14. References（引用）
+## 14. Makefile 常用命令速查
+
+项目根目录下的 `server/Makefile` 提供以下命令，方便开发与部署：
+
+| 命令 | 用途 |
+|---|---|
+| `make run` | 本地开发启动 |
+| `make test` | 运行所有测试 |
+| `make build` | 编译二进制 |
+| `make lint` | 代码检查 |
+| `make migrate-up` | 执行数据库迁移 |
+| `make migrate-down` | 回滚迁移 |
+| `make migrate-create` | 创建新迁移文件 |
+| `make docker-up` | 构建并启动 Docker 容器 |
+| `make docker-down` | 停止容器 |
+| `make docker-logs` | 查看应用日志 |
+
+---
+
+## 16. References（引用）
 
 | 引用 | 说明 |
 |---|---|
@@ -752,7 +774,7 @@ sudo certbot renew --dry-run
 | [Security.md](./Security.md) | 安全架构（TLS、审计日志） |
 | [BusinessRules.md](../product/BusinessRules.md) | 业务规则 |
 
-## 15. 灾备方案（Disaster Recovery）
+## 17. 灾备方案（Disaster Recovery）
 
 ### 15.1 故障等级定义
 

@@ -54,6 +54,7 @@ erDiagram
         uuid id PK
         string huawei_open_id UK
         string phone_hash
+        string phone_hash_sha256 UK
         string phone_hash_salt
         timestamp created_at
         timestamp updated_at
@@ -104,6 +105,7 @@ erDiagram
 | id | UUID | PK, DEFAULT gen_random_uuid() | 用户唯一标识 |
 | huawei_open_id | VARCHAR(128) | NOT NULL, UNIQUE | 华为账号 OpenID |
 | phone_hash | VARCHAR(255) | NOT NULL, UNIQUE | bcrypt(phone + salt) |
+| phone_hash_sha256 | VARCHAR(64) | UNIQUE | SHA-256(phone)，确定性哈希，用于匹配检测 |
 | phone_hash_salt | VARCHAR(64) | NOT NULL | bcrypt salt |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 注册时间 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新时间 |
@@ -114,11 +116,13 @@ erDiagram
 ```sql
 CREATE UNIQUE INDEX idx_users_huawei_open_id ON users(huawei_open_id);
 CREATE UNIQUE INDEX idx_users_phone_hash ON users(phone_hash);
+CREATE UNIQUE INDEX idx_users_phone_hash_sha256 ON users(phone_hash_sha256);
+CREATE UNIQUE INDEX idx_users_phone_hash_sha256 ON users(phone_hash_sha256);
 ```
 
 **说明：**
 
-- phone_hash 是整个系统的核心标识。它既是用户的唯一标识，也是匹配检测的关键字段。
+- phone_hash 是用户的手机号指纹（bcrypt）。phone_hash_sha256 是 SHA-256 哈希，用于匹配检测和查重。两个字段共同构成双层哈希方案：bcrypt 保证安全不可逆，SHA-256 保证匹配效率。
 - 明文手机号永不落盘。
 - deleted_at 仅在注销到彻底清理前的短暂窗口期内存在（清理后记录真实删除），不作为业务逻辑依赖。
 
@@ -129,6 +133,7 @@ CREATE UNIQUE INDEX idx_users_phone_hash ON users(phone_hash);
 | id | UUID | PK, DEFAULT gen_random_uuid() | 心锁唯一标识 |
 | from_user_id | UUID | NOT NULL, FK -> users.id | 创建者用户 ID |
 | to_phone_hash | VARCHAR(255) | NOT NULL | 目标用户的手机号指纹 |
+| to_phone_hash_sha256 | VARCHAR(64) | NOT NULL | SHA-256(target_phone)，用于匹配检测和查重 |
 | encrypted_content | BYTEA | -- | AES-256-GCM 加密内容（可为 NULL） |
 | content_nonce | BYTEA | -- | AES-GCM 加密使用的 nonce |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'WAITING' | 状态：WAITING / MATCHED / REVOKED / DESTROYED |
@@ -144,6 +149,8 @@ CREATE UNIQUE INDEX idx_users_phone_hash ON users(phone_hash);
 CREATE INDEX idx_heart_locks_from_user ON heart_locks(from_user_id);
 CREATE INDEX idx_heart_locks_to_phone_hash ON heart_locks(to_phone_hash);
 CREATE UNIQUE INDEX idx_heart_locks_from_to_unique ON heart_locks(from_user_id, to_phone_hash);
+CREATE INDEX idx_heart_locks_to_phone_hash_sha256 ON heart_locks(to_phone_hash_sha256);
+CREATE INDEX idx_heart_locks_match_check_new ON heart_locks(from_user_id, to_phone_hash_sha256, status) WHERE status = 'WAITING';
 CREATE INDEX idx_heart_locks_match_check ON heart_locks(from_user_id, to_phone_hash, status)
     WHERE status = 'WAITING';
 ```
@@ -151,8 +158,12 @@ CREATE INDEX idx_heart_locks_match_check ON heart_locks(from_user_id, to_phone_h
 **说明：**
 
 - `encrypted_content` 在状态为 REVOKED 时保留内容，在 DESTROYED 时设为 NULL。
-- `idx_heart_locks_from_to_unique` 保证同一用户对同一目标手机号只能有一条记录（RULE-010）。
-- `idx_heart_locks_match_check` 是匹配检测的性能关键索引。
+- `to_phone_hash` 是 bcrypt 哈希版本。
+- `to_phone_hash_sha256` 是 SHA-256 版本，用于匹配索引。
+- `idx_heart_locks_from_to_unique` 保证同一用户对同一目标手机号只能有一条记录（RULE-010，基于 bcrypt hash）。
+- `idx_heart_locks_match_check_new` 是匹配检测的性能关键索引（基于 SHA-256，性能更好）。
+- `idx_heart_locks_match_check` 是匹配检测的性能关键索引（bcrypt 版本）。
+- `idx_heart_locks_match_check_new` 是基于 SHA-256 的匹配检测索引（性能更好）。
 - `matched_at` 要求两条匹配记录的该字段值相同（精确到毫秒）。
 
 #### 4.3.3 push_tokens（推送 Token 表）
@@ -223,15 +234,28 @@ CREATE INDEX idx_operation_logs_action ON operation_logs(action);
 #### 4.4.2 手机号哈希方案
 
 ```
-哈希流程:
+哈希流程（双层哈希方案）:
+
+第一层：bcrypt（不可逆，用于防暴力破解）
 1. 生成随机 bcrypt salt (cost=12)
 2. phone_hash = bcrypt(phone_number + salt, cost=12)
 3. phone_hash + salt 存入 users 表
 
-匹配检测:
-1. 使用创建者提供的目标手机号明文
-2. 使用相同算法计算 phone_hash
-3. 在 heart_locks.to_phone_hash 中匹配
+第二层：SHA-256（确定性哈希，用于匹配检测和查重）
+1. phone_hash_sha256 = SHA-256(phone_number)
+2. 存入 users.phone_hash_sha256
+
+匹配检测（使用 SHA-256，性能优于 bcrypt 的逐行验证）:
+1. 创建心锁时，计算 target_phone 的 SHA-256
+2. 查找 heart_locks 中是否存在 WAITING 状态的心锁，满足：
+   - to_phone_hash_sha256 = current_user.phone_hash_sha256
+   - from_user.phone_hash_sha256 = target_user_phone_hash_sha256
+3. 匹配成功后使用 bcrypt phone_hash 做二次验证（可选安全加固）
+
+为什么需要两层哈希？
+- bcrypt(cost=12)：约 250ms 计算，暴力破解成本极高
+- SHA-256：纳秒级计算，适合精确匹配查询
+- bcrypt 用于安全验证，SHA-256 用于匹配索引
 ```
 
 ### 4.5 数据清除策略
@@ -260,6 +284,7 @@ CREATE TABLE users (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     huawei_open_id  VARCHAR(128) NOT NULL,
     phone_hash      VARCHAR(255) NOT NULL,
+    phone_hash_sha256 VARCHAR(64),
     phone_hash_salt VARCHAR(64)  NOT NULL,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -273,6 +298,7 @@ CREATE TABLE heart_locks (
     id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     from_user_id      UUID        NOT NULL REFERENCES users(id),
     to_phone_hash     VARCHAR(255) NOT NULL,
+    to_phone_hash_sha256 VARCHAR(64),
     encrypted_content BYTEA,
     content_nonce     BYTEA,
     status            VARCHAR(20) NOT NULL DEFAULT 'WAITING'
@@ -287,6 +313,8 @@ CREATE INDEX idx_heart_locks_from_user ON heart_locks(from_user_id);
 CREATE INDEX idx_heart_locks_to_phone_hash ON heart_locks(to_phone_hash);
 CREATE UNIQUE INDEX idx_heart_locks_from_to_unique ON heart_locks(from_user_id, to_phone_hash);
 CREATE INDEX idx_heart_locks_match_check ON heart_locks(from_user_id, to_phone_hash, status) WHERE status = 'WAITING';
+CREATE INDEX idx_heart_locks_to_phone_hash_sha256 ON heart_locks(to_phone_hash_sha256);
+CREATE INDEX idx_heart_locks_match_check_new ON heart_locks(from_user_id, to_phone_hash_sha256, status) WHERE status = 'WAITING';
 
 -- 3. push_tokens（推送 Token 表）
 CREATE TABLE push_tokens (
@@ -335,7 +363,10 @@ server/
     ├── 000003_create_push_tokens.down.sql
     ├── 000004_create_operation_logs.up.sql
     ├── 000004_create_operation_logs.down.sql
-    └── 000005_add_indexes.up.sql
+    ├── 000005_add_phone_hash_sha256.up.sql
+    ├── 000005_add_phone_hash_sha256.down.sql
+    ├── 000006_add_to_phone_hash_sha256.up.sql
+    └── 000006_add_to_phone_hash_sha256.down.sql
 ```
 
 #### 4.7.3 常用迁移命令
