@@ -1,41 +1,46 @@
+import { Navigation } from '../ui-kit/Navigation';
+
 @Component
 export struct LogoHeader {
   private showProfile: boolean = true;
 
   build() {
     Row() {
-      // Left: brand
-      Row({ space: 8 }) {
-        Image($r('app.media.app_icon'))
-          .width(28)
-          .height(28)
-          .borderRadius(14)
+      // Left: brand logo + name
+      Row({ space: 10 }) {
+        Image($rawfile('icons/lock-closed.svg'))
+          .width(22)
+          .height(22)
+          .objectFit(ImageFit.Contain)
+          .opacity(0.85)
+
         Text('心锁')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
+          .letterSpacing(2)
       }
       .alignItems(VerticalAlign.Center)
 
       Blank()
 
-      // Right: profile / placeholder
+      // Right: profile icon
       if (this.showProfile) {
-        Image($r('app.media.app_icon'))
-          .width(32)
-          .height(32)
-          .borderRadius(16)
-          .onClick(() => {
-            try {
-              const ctx = AppStorage.get<object>('context') as any;
-              if (ctx) {
-                ctx.router.pushUrl({ url: 'pages/ProfilePage' });
-              }
-            } catch (e) {
-              console.error('nav error', JSON.stringify(e));
-            }
-          })
-      }
+        Stack({ alignContent: Alignment.Center }) {
+         Circle()
+           .width(32)
+           .height(32)
+           .fill('#1AFFFFFF')
+
+          Text('我')
+            .fontSize(13)
+            .fontColor('#CCFFFFFF')
+            .fontWeight(FontWeight.Medium)
+       }
+        .onClick(() => {
+         Navigation.push('pages/ProfilePage');
+       })
+     }
     }
     .width('100%')
     .height(56)

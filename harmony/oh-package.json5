@@ -1,8 +1,4 @@
 {
-  "name": "entry",
-  "version": "1.0.0",
-  "description": "HeartLock（心锁）— HarmonyOS NEXT 客户端",
-  "dependencies": {
-    "@ibestservices/ibest-ui": "^2.2.7"
-  }
+  "modelVersion": "6.1.1",
+  "dependencies": {}
 }

@@ -1,59 +1,232 @@
 {
   "string": [
-    { "name": "app_name", "value": "心锁" },
-    { "name": "entry_desc", "value": "HeartLock 主模块" },
-    { "name": "EntryAbility_desc", "value": "主 Ability" },
-    { "name": "slogan_main", "value": "秘密属于一个人，答案属于两个人" },
-    { "name": "slogan_full", "value": "所有单向的喜欢，都会永远保密\n只有双向的喜欢，才值得被世界知道" },
-    { "name": "slogan_notice", "value": "不是所有喜欢，都要被知道\n只有彼此喜欢，秘密才会打开" },
-    { "name": "splash_subtitle", "value": "心锁" },
-    { "name": "login_button", "value": "心锁已打开" },
-    { "name": "login_hint", "value": "首次登录将自动创建账户" },
-    { "name": "home_title", "value": "心锁" },
-    { "name": "home_locks_count", "value": "心锁 %d / 3" },
-    { "name": "home_empty_title", "value": "尚未收藏任何喜欢" },
-    { "name": "home_empty_subtitle", "value": "第一份喜欢，值得好好想想" },
-    { "name": "lock_status_waiting", "value": "等待中" },
-    { "name": "lock_status_matched", "value": "已解锁" },
-    { "name": "lock_status_revoked", "value": "已撤回" },
-    { "name": "lock_waiting_days", "value": "已经等待 %d 天" },
-    { "name": "lock_created_at", "value": "创建于 %s" },
-    { "name": "lock_matched_at", "value": "匹配于 %s" },
-    { "name": "create_title", "value": "把你的喜欢存进心锁" },
-    { "name": "create_phone_placeholder", "value": "对方手机号" },
-    { "name": "create_content_placeholder", "value": "想对 TA 说的话……" },
-    { "name": "create_submit", "value": "放进心锁" },
-    { "name": "create_hint", "value": "一份喜欢，一生只给同一个人一次" },
-    { "name": "create_confirm_title", "value": "确认将这份喜欢放进心锁？" },
-    { "name": "create_confirm_content", "value": "此操作不可撤销，请确认手机号正确" },
-    { "name": "button_cancel", "value": "取消" },
-    { "name": "button_confirm", "value": "确认" },
-    { "name": "detail_waiting_title", "value": "等待中" },
-    { "name": "detail_matched_title", "value": "心锁已打开" },
-    { "name": "action_generate_card", "value": "生成邀请卡片" },
-    { "name": "action_revoke", "value": "撤回" },
-    { "name": "action_destroy", "value": "永久删除" },
-    { "name": "revoke_confirm", "value": "确定撤回这份喜欢？" },
-    { "name": "destroy_confirm", "value": "确定永久删除？此操作不可恢复" },
-    { "name": "ceremony_title", "value": "心锁已打开" },
-    { "name": "ceremony_subtitle", "value": "因为你们互相喜欢" },
-    { "name": "ceremony_their_words", "value": "TA 写给你的第一句话……" },
-    { "name": "invitation_title", "value": "邀请卡片" },
-    { "name": "invitation_line1", "value": "有人把一份喜欢放进了心锁" },
-    { "name": "invitation_line2", "value": "只有当你也想起 TA 的时候" },
-    { "name": "invitation_action", "value": "打开心锁" },
-    { "name": "profile_title", "value": "个人中心" },
-    { "name": "profile_heart_locks", "value": "心锁" },
-    { "name": "profile_matched", "value": "已解锁" },
-    { "name": "profile_revoked", "value": "已撤回" },
-    { "name": "profile_logout", "value": "注销账户" },
-    { "name": "logout_confirm", "value": "确定注销？所有数据将永久删除" },
-    { "name": "logout_confirm2", "value": "再次确认？此操作不可撤销" },
-    { "name": "error_network", "value": "网络异常，请稍后重试" },
-    { "name": "error_phone_format", "value": "手机号格式不正确" },
-    { "name": "error_phone_self", "value": "不能向自己创建心锁" },
-    { "name": "error_phone_duplicate", "value": "已向该用户创建过心锁" },
-    { "name": "error_content_length", "value": "心锁内容需在 1-500 字之间" },
-    { "name": "error_lock_limit", "value": "最多同时拥有 3 个等待中的心锁" }
+    {
+      "name": "app_name",
+      "value": "心锁"
+    },
+    {
+      "name": "entry_desc",
+      "value": "HeartLock 主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "主 Ability"
+    },
+    {
+      "name": "slogan_main",
+      "value": "秘密属于一个人，答案属于两个人"
+    },
+    {
+      "name": "slogan_full",
+      "value": "所有单向的喜欢，都会永远保密\n只有双向的喜欢，才值得被世界知道"
+    },
+    {
+      "name": "slogan_notice",
+      "value": "不是所有喜欢，都要被知道\n只有彼此喜欢，秘密才会打开"
+    },
+    {
+      "name": "splash_subtitle",
+      "value": "心锁"
+    },
+    {
+      "name": "login_button",
+      "value": "心锁已打开"
+    },
+    {
+      "name": "login_hint",
+      "value": "首次登录将自动创建账户"
+    },
+    {
+      "name": "home_title",
+      "value": "心锁"
+    },
+    {
+      "name": "home_locks_count",
+      "value": "心锁 %d / 3"
+    },
+    {
+      "name": "home_empty_title",
+      "value": "尚未收藏任何喜欢"
+    },
+    {
+      "name": "home_empty_subtitle",
+      "value": "第一份喜欢，值得好好想想"
+    },
+    {
+      "name": "lock_status_waiting",
+      "value": "等待中"
+    },
+    {
+      "name": "lock_status_matched",
+      "value": "已解锁"
+    },
+    {
+      "name": "lock_status_revoked",
+      "value": "已撤回"
+    },
+    {
+      "name": "lock_waiting_days",
+      "value": "已经等待 %d 天"
+    },
+    {
+      "name": "lock_created_at",
+      "value": "创建于 %s"
+    },
+    {
+      "name": "lock_matched_at",
+      "value": "匹配于 %s"
+    },
+    {
+      "name": "create_title",
+      "value": "把你的喜欢存进心锁"
+    },
+    {
+      "name": "create_phone_placeholder",
+      "value": "对方手机号"
+    },
+    {
+      "name": "create_content_placeholder",
+      "value": "想对 TA 说的话……"
+    },
+    {
+      "name": "create_submit",
+      "value": "放进心锁"
+    },
+    {
+      "name": "create_hint",
+      "value": "一份喜欢，一生只给同一个人一次"
+    },
+    {
+      "name": "create_confirm_title",
+      "value": "确认将这份喜欢放进心锁？"
+    },
+    {
+      "name": "create_confirm_content",
+      "value": "此操作不可撤销，请确认手机号正确"
+    },
+    {
+      "name": "button_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "button_confirm",
+      "value": "确认"
+    },
+    {
+      "name": "detail_waiting_title",
+      "value": "等待中"
+    },
+    {
+      "name": "detail_matched_title",
+      "value": "心锁已打开"
+    },
+    {
+      "name": "action_generate_card",
+      "value": "生成邀请卡片"
+    },
+    {
+      "name": "action_revoke",
+      "value": "撤回"
+    },
+    {
+      "name": "action_destroy",
+      "value": "永久删除"
+    },
+    {
+      "name": "revoke_confirm",
+      "value": "确定撤回这份喜欢？"
+    },
+    {
+      "name": "destroy_confirm",
+      "value": "确定永久删除？此操作不可恢复"
+    },
+    {
+      "name": "ceremony_title",
+      "value": "心锁已打开"
+    },
+    {
+      "name": "ceremony_subtitle",
+      "value": "因为你们互相喜欢"
+    },
+    {
+      "name": "ceremony_their_words",
+      "value": "TA 写给你的第一句话……"
+    },
+    {
+      "name": "invitation_title",
+      "value": "邀请卡片"
+    },
+    {
+      "name": "invitation_line1",
+      "value": "有人把一份喜欢放进了心锁"
+    },
+    {
+      "name": "invitation_line2",
+      "value": "只有当你也想起 TA 的时候"
+    },
+    {
+      "name": "invitation_action",
+      "value": "打开心锁"
+    },
+    {
+      "name": "profile_title",
+      "value": "个人中心"
+    },
+    {
+      "name": "profile_heart_locks",
+      "value": "心锁"
+    },
+    {
+      "name": "profile_matched",
+      "value": "已解锁"
+    },
+    {
+      "name": "profile_revoked",
+      "value": "已撤回"
+    },
+    {
+      "name": "profile_logout",
+      "value": "注销账户"
+    },
+    {
+      "name": "logout_confirm",
+      "value": "确定注销？所有数据将永久删除"
+    },
+    {
+      "name": "logout_confirm2",
+      "value": "再次确认？此操作不可撤销"
+    },
+    {
+      "name": "error_network",
+      "value": "网络异常，请稍后重试"
+    },
+    {
+      "name": "error_phone_format",
+      "value": "手机号格式不正确"
+    },
+    {
+      "name": "error_phone_self",
+      "value": "不能向自己创建心锁"
+    },
+    {
+      "name": "error_phone_duplicate",
+      "value": "已向该用户创建过心锁"
+    },
+    {
+      "name": "error_content_length",
+      "value": "心锁内容需在 1-500 字之间"
+    },
+    {
+      "name": "error_lock_limit",
+      "value": "最多同时拥有 3 个等待中的心锁"
+    },
+    {
+      "name": "permission_media_read_reason",
+      "value": "用于保存邀请卡片到相册"
+    },
+    {
+      "name": "permission_media_write_reason",
+      "value": "用于保存邀请卡片到相册"
+    }
   ]
 }

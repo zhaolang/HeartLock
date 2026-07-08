@@ -78,7 +78,8 @@ class HttpClient {
   }
 
   patch<T>(path: string, body?: object): Promise<T> {
-    return this.request<T>(http.RequestMethod.PATCH, path, body);
+     // 使用 POST 替代 PATCH（@ohos.net.http.RequestMethod 不支持 PATCH）
+     return this.request<T>(http.RequestMethod.POST, path, body);
   }
 
   delete<T>(path: string, body?: object): Promise<T> {

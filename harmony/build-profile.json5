@@ -1,10 +1,56 @@
 {
-  "apiType": "stageMode",
-  "buildOption": {
-    "strictMode": {
-      "arkts": {
-        "strictEnable": false
+  "app": {
+    "products": [
+      {
+        "name": "default",
+        "targetSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "6.0.1(21)",
+        "runtimeOS": "HarmonyOS",
+        "signingConfig": "default",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
       }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/zhaolang/.ohos/config/default_harmony_jYFmsYg4T88TTwXfsrvxGXfIuXduMj9815T7PnJe3LU=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B9DF5D1FADCD59E92DC031B1DBF4F6512731D495C227B7C398CA32035389E1012D279847E7DB909",
+          "profile": "/Users/zhaolang/.ohos/config/default_harmony_jYFmsYg4T88TTwXfsrvxGXfIuXduMj9815T7PnJe3LU=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/zhaolang/.ohos/config/default_harmony_jYFmsYg4T88TTwXfsrvxGXfIuXduMj9815T7PnJe3LU=.p12",
+          "storePassword": "0000001B79EE73323F714AF84BE466827BAA10D91115B99C27F2DA31058DBF47E18ED723A0B56EF2CD95CD"
+        }
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
     }
-  }
+  ]
 }

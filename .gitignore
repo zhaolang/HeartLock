@@ -27,3 +27,8 @@ harmony/node_modules/
 .env.local
 oh_modules/
 .hvigor/
+
+# Go build output
+server/bin/
+.config-backup/
+entry/build/

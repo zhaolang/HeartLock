@@ -2,32 +2,46 @@
   "module": {
     "name": "entry",
     "type": "entry",
-    "srcEntry": "./ets/entryability/EntryAbility.ts",
+    "srcEntry": "./ets/entryability/EntryAbility.ets",
     "description": "$string:entry_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": ["phone"],
     "deliveryWithInstall": true,
     "installationFree": false,
-    "pages": ["pages/SplashPage", "pages/LoginPage", "pages/HomePage", "pages/CreateLockPage", "pages/LockDetailPage", "pages/UnlockCeremonyPage", "pages/InvitationCardPage", "pages/ProfilePage"],
+    "pages": "$profile:main_pages",
     "abilities": [
       {
         "name": "EntryAbility",
-        "srcEntry": "./ets/entryability/EntryAbility.ts",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
         "icon": "$media:icon",
         "label": "$string:app_name",
         "startWindowIcon": "$media:app_icon",
-        "startWindowBackground": "#0D0D0D",
+        "startWindowBackground": "$color:startWindowBackground",
         "exported": true,
         "launchType": "singleton"
       }
     ],
     "requestPermissions": [
-      { "name": "ohos.permission.GET_NETWORK_INFO" },
       { "name": "ohos.permission.INTERNET" },
+      { "name": "ohos.permission.GET_NETWORK_INFO" },
       { "name": "ohos.permission.VIBRATE" },
-      { "name": "ohos.permission.READ_MEDIA" },
-      { "name": "ohos.permission.WRITE_MEDIA" }
+      {
+        "name": "ohos.permission.READ_MEDIA",
+        "reason": "$string:permission_media_read_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.WRITE_MEDIA",
+        "reason": "$string:permission_media_write_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
+      }
     ]
   }
 }

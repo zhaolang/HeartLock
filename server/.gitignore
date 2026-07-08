@@ -1,0 +1,21 @@
+# Binary
+bin/
+heartlock-server
+heartlock.pid
+heartlock.log
+
+# Environment files
+.env
+.env.*
+!.env.template
+!.env.development
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store

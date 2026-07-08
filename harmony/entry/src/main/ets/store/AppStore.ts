@@ -1,8 +1,26 @@
+import { router } from '@kit.ArkUI';
+
 export class AppStore {
-  // User state
-  @StorageLink('auth_token') token: string = '';
-  @StorageLink('phone_authorized') phoneAuthorized: boolean = false;
-  @StorageLink('user_info') userInfoStr: string = '';
+   get token(): string {
+     return AppStorage.get<string>('auth_token') ?? '';
+   }
+   set token(val: string) {
+     AppStorage.setOrCreate('auth_token', val);
+   }
+ 
+   get phoneAuthorized(): boolean {
+     return AppStorage.get<boolean>('phone_authorized') ?? false;
+   }
+   set phoneAuthorized(val: boolean) {
+     AppStorage.setOrCreate('phone_authorized', val);
+   }
+ 
+   get userInfoStr(): string {
+     return AppStorage.get<string>('user_info') ?? '';
+   }
+   set userInfoStr(val: string) {
+     AppStorage.setOrCreate('user_info', val);
+   }
 
   get isLoggedIn(): boolean {
     return this.token !== '';
@@ -29,12 +47,9 @@ export class AppStore {
     return `心锁 ${this.heartLockCount} / ${this.maxHeartLock}`;
   }
 
-  navigateTo(url: string, context?: object): void {
+  navigateTo(url: string, params?: Record<string, Object>): void {
     try {
-      const ctx = AppStorage.get<object>('context') as any;
-      if (ctx) {
-        ctx.router.pushUrl({ url: url });
-      }
+      router.pushUrl({ url, params });
     } catch (err) {
       console.error('Navigation failed', JSON.stringify(err));
     }
@@ -42,10 +57,7 @@ export class AppStore {
 
   navigateBack(): void {
     try {
-      const ctx = AppStorage.get<object>('context') as any;
-      if (ctx) {
-        ctx.router.back();
-      }
+      router.back();
     } catch (err) {
       console.error('Navigate back failed', JSON.stringify(err));
     }

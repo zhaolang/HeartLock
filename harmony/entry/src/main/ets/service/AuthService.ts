@@ -62,6 +62,9 @@ class AuthService {
       // mock: do nothing
     }
     AppStorage.setOrCreate('phone_authorized', true);
+    // 存储手机号前缀供 mock 匹配检测
+    const prefix = phoneNumber.slice(0, 3) + '****' + phoneNumber.slice(-4);
+    AppStorage.setOrCreate('my_phone_prefix', prefix);
   }
 
   async deleteAccount(): Promise<void> {
@@ -84,6 +87,7 @@ class AuthService {
     this.mockUser.phoneAuthorized = true;
     AppStorage.setOrCreate('phone_authorized', true);
     AppStorage.setOrCreate('user_info', JSON.stringify(this.mockUser));
+    AppStorage.setOrCreate('my_phone_prefix', '138****0000');
     return this.mockUser;
   }
 }
