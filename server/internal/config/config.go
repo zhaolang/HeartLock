@@ -7,7 +7,7 @@ import (
 // AppConfig 应用配置，从环境变量加载
 type AppConfig struct {
 	// 应用
-	Port    string `env:"APP_PORT"     envDefault:"8080"`
+	Port    string `env:"APP_PORT"     envDefault:"8081"`
 	Env     string `env:"APP_ENV"      envDefault:"development"`
 	Version string `env:"APP_VERSION"  envDefault:"1.0.0"`
 

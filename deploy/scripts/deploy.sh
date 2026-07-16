@@ -124,7 +124,7 @@ deploy_remote() {
         sleep 3
         
         # 检查健康状态
-        curl -s http://localhost:8080/health | python3 -m json.tool
+        curl -s http://localhost:8081/health | python3 -m json.tool
         
         echo ""
         echo "  ✅ 部署完成！"

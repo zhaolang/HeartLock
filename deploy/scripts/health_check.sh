@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-URL="http://localhost:8080/health"
+URL="http://localhost:8081/health"
 LOG_FILE="/var/log/heartlock/health.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 

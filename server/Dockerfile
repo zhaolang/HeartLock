@@ -35,8 +35,8 @@ USER appuser
 
 # 使用 busybox 内置 wget
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
 
-EXPOSE 8080
+EXPOSE 8081
 
 ENTRYPOINT ["/app/server"]

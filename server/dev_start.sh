@@ -2,7 +2,7 @@
 # HeartLock 开发服务器启动脚本
 
 export APP_ENV=development
-export APP_PORT=8080
+export APP_PORT=8081
 export APP_VERSION=1.0.0
 
 export DB_HOST=127.0.0.1
@@ -46,7 +46,7 @@ sleep 2
 if kill -0 "$PID" 2>/dev/null; then
     echo "Server started (PID $PID)"
     echo "Checking /health..."
-    curl -s http://localhost:8080/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/health
+    curl -s http://localhost:8081/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8081/health
 else
     echo "Server failed to start!"
     cat "$LOG_FILE"

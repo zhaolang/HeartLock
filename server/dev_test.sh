@@ -2,7 +2,7 @@
 # HeartLock API 开发测试脚本
 # 自动运行完整的 API 测试套件
 
-BASE_URL="${BASE_URL:-http://localhost:8080/v1}"
+BASE_URL="${BASE_URL:-http://localhost:8081/v1}"
 PASS=0
 FAIL=0
 
@@ -19,7 +19,7 @@ echo "============================================"
 # 1. 健康检查
 echo ""
 echo "--- 1. Health Check ---"
-HEALTH=$(curl -s http://localhost:8080/health 2>/dev/null)
+HEALTH=$(curl -s http://localhost:8081/health 2>/dev/null)
 STATUS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('status',''))" 2>/dev/null)
 echo "  Status: $STATUS"
 [ "$STATUS" = "healthy" ] && pass || fail "Health check failed"
@@ -169,7 +169,7 @@ C_LOCKS=$(curl -s -X GET "$BASE_URL/heart-locks" \
   -H "Authorization: Bearer $TOKEN_C")
 C_LOCK_ID=$(echo "$C_LOCKS" | python3 -c "import sys,json; d=json.load(sys.stdin); ls=d.get('data',{}).get('locks',[{}]); print(ls[0]['id'] if ls else '')" 2>/dev/null)
 if [ -n "$C_LOCK_ID" ]; then
-  REV=$(curl -s -X PATCH "$BASE_URL/heart-locks/$C_LOCK_ID/revoke" \
+  REV=$(curl -s -X POST "$BASE_URL/heart-locks/$C_LOCK_ID/revoke" \
     -H "Authorization: Bearer $TOKEN_C")
   REV_STATUS=$(echo "$REV" | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('status',''))" 2>/dev/null)
   echo "  Revoke status: $REV_STATUS"

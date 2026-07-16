@@ -10,7 +10,7 @@ LOG_FILE="$SCRIPT_DIR/heartlock.log"
 
 # 加载开发环境变量
 export APP_ENV=development
-export APP_PORT=8080
+export APP_PORT=8081
 export APP_VERSION=1.0.0
 
 export DB_HOST=127.0.0.1
@@ -53,7 +53,7 @@ case "${1:-start}" in
     sleep 2
     if kill -0 "$PID" 2>/dev/null; then
       echo "Server started (PID $PID)"
-      curl -s http://localhost:8080/health | python3 -m json.tool
+      curl -s http://localhost:8081/health | python3 -m json.tool
     else
       echo "Server failed to start!"
       cat "$LOG_FILE"
@@ -88,7 +88,7 @@ case "${1:-start}" in
     ;;
     
   test)
-    if ! curl -s http://localhost:8080/health > /dev/null 2>&1; then
+    if ! curl -s http://localhost:8081/health > /dev/null 2>&1; then
       echo "Server not running. Starting..."
       $0 start
     fi
