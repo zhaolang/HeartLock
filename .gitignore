@@ -36,3 +36,23 @@ entry/build/
 
 # HarmonyOS build output
 harmony/entry/build/
+
+# Environment secrets (production)
+.env.production
+
+# Logs & PID
+*.log
+*.pid
+
+# Compiled binaries
+server/server
+server/heartlock-server
+heartlock-server
+bin/
+
+# Temp files
+heartlock*.sh
+
+# Deploy helper (has actual secrets)
+deploy/.env.production
+deploy/.env.production
