@@ -52,9 +52,7 @@ func main() {
 		slog.Error("failed to run database migrations", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("database migrations completed")
-
-	// 初始化 KMS 密钥管理
+	// 初始化 KMS// 初始化 KMS 密钥管理
 	kms, err := crypto.NewKMS(cfg.MasterKey)
 	if err != nil {
 		slog.Error("failed to initialize KMS", "error", err)
@@ -71,17 +69,28 @@ func main() {
 	lockRepo := repository.NewLockRepo(db)
 	pushRepo := repository.NewPushRepo(db)
 	logRepo := repository.NewOperationLogRepo(db)
+	adminRepo := repository.NewAdminRepo(db)
 
 	// Service 层
 	pushService := service.NewPushService(pushRepo, cfg.HuaweiPushAppID, cfg.HuaweiPushAppSecret)
 	authService := service.NewAuthService(userRepo, lockRepo, pushRepo, logRepo, kms, tokenMgr)
 	lockService := service.NewLockService(lockRepo, userRepo, pushService, logRepo, kms)
+	adminService := service.NewAdminService(adminRepo, userRepo, lockRepo, logRepo, kms, tokenMgr)
+
+	// 初始化种子管理员
+	if err := adminService.InitAdmin(context.Background()); err != nil {
+		slog.Error("failed to init admin", "error", err)
+		os.Exit(1)
+	}
+
+	//
 
 	// Handler 层
 	healthHandler := handler.NewHealthHandler(db, cfg.Version)
 	authHandler := handler.NewAuthHandler(authService)
 	lockHandler := handler.NewLockHandler(lockService)
 	pushHandler := handler.NewPushHandler(pushService)
+	adminHandler := handler.NewAdminHandler(adminService)
 
 	// --- 路由配置 ---
 	r := chi.NewRouter()
@@ -94,6 +103,16 @@ func main() {
 
 	// 健康检查（公开路由）
 	r.Get("/health", healthHandler.Health)
+	// 根路径重定向到管理后台
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin/", http.StatusFound)
+	})
+
+
+	// 管理后台静态文件服务（公开）
+	r.Get("/admin", adminHandler.DashboardIndex)
+	r.Get("/admin/", adminHandler.DashboardIndex)
+	r.Get("/admin/*", adminHandler.Dashboard)
 
 	// API V1 路由
 	r.Route("/v1", func(r chi.Router) {
@@ -102,6 +121,7 @@ func main() {
 			r.Use(middleware.LoginRateLimit)
 			r.Post("/auth/register", authHandler.Register)
 			r.Post("/auth/login", authHandler.Login)
+			r.Post("/admin/login", adminHandler.Login)
 		})
 
 		// 需 JWT 鉴权的路由
@@ -109,7 +129,6 @@ func main() {
 			r.Use(middleware.Auth(tokenMgr))
 
 			// 认证模块
-			r.Post("/auth/phone-authorize", authHandler.AuthorizePhone)
 			r.Delete("/auth/account", authHandler.DeleteAccount)
 
 			// 心锁模块
@@ -123,6 +142,24 @@ func main() {
 			// 推送模块
 			r.Post("/push/token", pushHandler.RegisterToken)
 			r.Delete("/push/token", pushHandler.DeleteToken)
+		})
+
+		// 需管理员鉴权的路由
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AdminAuth(tokenMgr))
+
+			r.Get("/admin/stats", adminHandler.GetStats)
+			r.Get("/admin/users", adminHandler.ListUsers)
+			r.Post("/admin/users/{id}/ban", adminHandler.BanUser)
+			r.Post("/admin/users/{id}/unban", adminHandler.UnbanUser)
+			r.Get("/admin/heart-locks", adminHandler.ListLocks)
+			r.Get("/admin/heart-locks/{id}", adminHandler.GetLockDetail)
+			r.Get("/admin/monitoring", adminHandler.GetMonitoring)
+			r.Get("/admin/export/users", adminHandler.ExportUsers)
+			r.Get("/admin/export/locks", adminHandler.ExportLocks)
+			r.Post("/admin/heart-locks/{id}/delete", adminHandler.DeleteLock)
+			r.Post("/admin/heart-locks/batch-delete", adminHandler.BatchDeleteLocks)
+			r.Get("/admin/health", adminHandler.HealthCheck)
 		})
 	})
 
@@ -150,7 +187,6 @@ func main() {
 	// 优雅关闭
 	gracefulShutdown(server, db)
 }
-
 
 // startCleanupJobs 启动定时清理任务
 func startCleanupJobs(logRepo *repository.OperationLogRepo, lockRepo *repository.LockRepo) {
@@ -205,7 +241,6 @@ func cleanupRevokedLocks(lockRepo *repository.LockRepo) {
 		slog.Info("cleaned up revoked lock metadata", "count", deleted)
 	}
 }
-
 
 // connectDB 连接数据库
 func connectDB(cfg *config.AppConfig) (*pgxpool.Pool, error) {
